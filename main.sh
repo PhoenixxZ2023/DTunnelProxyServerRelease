@@ -1,83 +1,83 @@
 #!/bin/bash
 
-# Script de Gerenciamento do Proxy DTunnel
-# Autor: Seu Nome
-# Data: 5 de fevereiro de 2024
+# DTunnel Proxy Management Script
+# Author: Your Name
+# Date: February 5, 2024
 
-ARQUIVO_TOKEN="$HOME/.proxy_token"
+TOKEN_FILE="$HOME/.proxy_token"
 PROXY_BIN="/usr/bin/proxy"
 
-# Função para carregar o token do arquivo
-carregar_token_do_arquivo() {
-    local token=$(<"$ARQUIVO_TOKEN")
+# Function to load token from file
+load_token_from_file() {
+    local token=$(<"$TOKEN_FILE")
     echo "$token"
 }
 
-# Função para verificar se uma porta está em uso
-porta_em_uso() {
-    local porta=$1
-    nc -z localhost "$porta"
+# Function to check if a port is in use
+is_port_in_use() {
+    local port=$1
+    nc -z localhost "$port"
     return $?
 }
 
-# Função para validar o token
-validar_token() {
+# Function to validate token
+validate_token() {
     local token="$1"
     "$PROXY_BIN" --token "$token" --validate >/dev/null
     return $?
 }
 
-# Função para verificar e definir o token
-verificar_token() {
-    if [ ! -f "$ARQUIVO_TOKEN" ]; then
-        echo -e "\033[1;33mToken de acesso não encontrado\033[0m"
+# Function to check and set token
+check_token() {
+    if [ ! -f "$TOKEN_FILE" ]; then
+        echo -e "\033[1;33mAccess token not found\033[0m"
         while true; do
-            read -rp "$(prompt 'Por favor, insira seu token: ')" token
-            echo "$token" > "$ARQUIVO_TOKEN"
-            echo -e "\n\033[1;32mToken salvo em $ARQUIVO_TOKEN\033[0m"
+            read -rp "$(prompt 'Please enter your token: ')" token
+            echo "$token" > "$TOKEN_FILE"
+            echo -e "\n\033[1;32mToken saved to $TOKEN_FILE\033[0m"
             return
         done
     fi
 }
 
-# Função para prompt com formatação
+# Function to prompt with formatting
 prompt() {
     echo -e "\033[1;33m$1\033[0m"
 }
 
-# ... (Outras funções permanecem inalteradas)
+# ... (Other functions remain unchanged)
 
-# Função principal
-principal() {
+# Main function
+main() {
     clear
-    verificar_token
+    check_token
 
     echo -e "\033[1;34m╔═════════════════════════════╗\033[0m"
-    echo -e "\033[1;34m║\033[1;41m\033[1;32m      Menu do Proxy DTunnel    \033[0m\033[1;34m║"
+    echo -e "\033[1;34m║\033[1;41m\033[1;32m      DTunnel Proxy Menu     \033[0m\033[1;34m║"
     echo -e "\033[1;34m║═════════════════════════════║\033[0m"
 
-    mostrar_portas_em_uso
+    show_ports_in_use
 
-    local opcao
-    echo -e "\033[1;34m║\033[1;36m[\033;1;32m01\033[1;36m] \033[1;32m• \033[1;31mABRIR PORTA              \033[1;34m║"
-    echo -e "\033[1;34m║\033[1;36m[\033;1;32m02\033[1;36m] \033[1;32m• \033[1;31mFECHAR PORTA             \033[1;34m║"
-    echo -e "\033[1;34m║\033[1;36m[\033;1;32m03\033[1;36m] \033[1;32m• \033[1;31mREINICIAR PORTA          \033[1;34m║"
-    echo -e "\033[1;34m║\033[1;36m[\033;1;32m04\033[1;36m] \033[1;32m• \033[1;31mMONITORAR               \033[1;34m║"
-    echo -e "\033[1;34m║\033[1;36m[\033;1;32m00\033[1;36m] \033[1;32m• \033[1;31mSAIR                   \033[1;34m║"
+    local option
+    echo -e "\033[1;34m║\033[1;36m[\033[1;32m01\033[1;36m] \033[1;32m• \033[1;31mOPEN PORT              \033[1;34m║"
+    echo -e "\033[1;34m║\033[1;36m[\033;1;32m02\033[1;36m] \033[1;32m• \033[1;31mCLOSE PORT             \033[1;34m║"
+    echo -e "\033[1;34m║\033[1;36m[\033;1;32m03\033[1;36m] \033[1;32m• \033[1;31mRESTART PORT           \033[1;34m║"
+    echo -e "\033[1;34m║\033[1;36m[\033;1;32m04\033[1;36m] \033[1;32m• \033[1;31mMONITOR               \033[1;34m║"
+    echo -e "\033[1;34m║\033[1;36m[\033;1;32m00\033[1;36m] \033[1;32m• \033[1;31mEXIT                  \033[1;34m║"
     echo -e "\033[1;34m╚═════════════════════════════╝\033[0m"
 
-    read -rp "$(prompt 'Selecione uma opção: ')" opcao
+    read -rp "$(prompt 'Select an option: ')" option
 
-    case "$opcao" in
-        1) iniciar_proxy ;;
-        2) parar_proxy ;;
-        3) reiniciar_proxy ;;
-        4) mostrar_log_proxy ;;
-        0) sair_menu_proxy ;;
-        *) echo -e "\033[1;31mOpção inválida. Por favor, tente novamente.\033[0m" ; pausa_prompt ;;
+    case "$option" in
+        1) start_proxy ;;
+        2) stop_proxy ;;
+        3) restart_proxy ;;
+        4) show_proxy_log ;;
+        0) exit_proxy_menu ;;
+        *) echo -e "\033[1;31mInvalid option. Please try again.\033[0m" ; pause_prompt ;;
     esac
 
-    principal
+    main
 }
 
-principal
+main
