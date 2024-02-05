@@ -1,39 +1,44 @@
 #!/bin/bash
 
 PROXY_BIN="/usr/bin/proxy"
+TOKEN_FILE="$HOME/.proxy_token"
 
+# Function to check if a port is in use
 is_port_in_use() {
     local port=$1
     nc -z localhost "$port"
     return $?
 }
 
+# Function to display prompts with yellow text
 prompt() {
     echo -e "\033[1;33m$1\033[0m"
 }
 
-show_ports_in_use() {
-    local ports_in_use=$(systemctl list-units --all --plain --no-legend | grep -oE 'proxy-[0-9]+' | cut -d'-' -f2)
-    if [ -n "$ports_in_use" ]; then
-        ports_in_use=$(echo "$ports_in_use" | tr '\n' ' ')
-        echo -e "\033[1;34m║\033[1;32mEm uso:\033[1;33m $(printf '%-21s' "$ports_in_use")\033[1;34m║\033[0m"
-        echo -e "\033[1;34m║═════════════════════════════║\033[0m"
-    fi
+# Function to get a yes/no response
+get_yes_no_response() {
+    local response question="$1"
+    while true; do
+        read -rp "$(prompt "$question (s/n): ")" -ei n response
+        case "$response" in
+            [sS]) return 0 ;;
+            [nN]) return 1 ;;
+            *) echo -e "\033[1;31mResposta inválida. Tente novamente.\033[0m" ;;
+        esac
+    done
 }
 
+# Function to display a pause prompt
 pause_prompt() {
-    read -rp "$(prompt 'Enter pra continuar...')" voidResponse
+    read -rp "$(prompt 'Pressione Enter para continuar...')" voidResponse
 }
 
+# Function to get a valid port
 get_valid_port() {
     while true; do
         read -rp "$(prompt 'Porta: ')" port
-        if ! [[ "$port" =~ ^[0-9]+$ ]]; then
-            echo -e "\033[1;31mPorta inválido.\033[0m"
-        elif [ "$port" -le 0 ] || [ "$port" -gt 65535 ]; then
-            echo -e "\033[1;31mPorta fora do intervalo permitido.\033[0m"
-        elif is_port_in_use "$port"; then
-            echo -e "\033[1;31mPorta em uso.\033[0m"
+        if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -le 0 ] || [ "$port" -gt 65535 ] || is_port_in_use "$port"; then
+            echo -e "\033[1;31mPorta inválida ou em uso. Tente novamente.\033[0m"
         else
             break
         fi
@@ -41,6 +46,7 @@ get_valid_port() {
     echo "$port"
 }
 
+# Function to start the proxy
 start_proxy() {
     local port=$(get_valid_port)
     local protocol cert_path response ssh_only service_name service_file
@@ -48,7 +54,7 @@ start_proxy() {
 
     if get_yes_no_response "$(prompt 'Habilitar o HTTPS?')"; then
         protocol="--https"
-        read -rp "$(prompt 'Certificado SSL (HTTPS):')" cert_path
+        read -rp "$(prompt 'Caminho do Certificado SSL (HTTPS):')" cert_path
         cert_path="--cert $cert_path"
     else
         protocol="--http"
@@ -56,17 +62,16 @@ start_proxy() {
     fi
 
     read -rp "$(prompt 'Status HTTP (Padrão: @DuTra01): ')" response
-    response="${response:-@Buga-ssh}"
+    response="${response:-@DuTra01}"
 
+    ssh_only=""
     if get_yes_no_response "$(prompt 'Habilitar somente SSH?')"; then
         ssh_only="--ssh-only"
-    else
-        ssh_only=""
     fi
 
     service_name="proxy-$port"
     service_file="/etc/systemd/system/$service_name.service"
-    cat > $service_file <<EOF
+    cat >"$service_file" <<EOF
 [Unit]
 Description=DTunnel Proxy Server on port $port
 After=network.target
@@ -75,7 +80,7 @@ After=network.target
 Type=simple
 User=$(whoami)
 WorkingDirectory=$(pwd)
-ExecStart=$PROXY_BIN --port $port $protocol $ssh_only --buffer-size 32768 --workers 2500 $cert_path --response $response --log-file $proxy_log_file
+ExecStart=$PROXY_BIN --token \$(cat "$TOKEN_FILE") $protocol --port $port $ssh_only --buffer-size 32768 --workers 2500 $cert_path --response $response --log-file $proxy_log_file
 StandardOutput=null
 StandardOutput=null
 Restart=always
@@ -93,6 +98,7 @@ EOF
     pause_prompt
 }
 
+# Function to restart the proxy
 restart_proxy() {
     local port
     read -rp "$(prompt 'Porta: ')" port
@@ -110,9 +116,8 @@ restart_proxy() {
     pause_prompt
 }
 
+# Function to stop the proxy
 stop_proxy() {
-    show_ports_in_use
-
     local port
     read -rp "$(prompt 'Porta: ')" port
     local service_name="proxy-$port"
@@ -126,6 +131,7 @@ stop_proxy() {
     pause_prompt
 }
 
+# Function to show proxy logs
 show_proxy_log() {
     local port proxy_log_file
 
@@ -151,12 +157,13 @@ show_proxy_log() {
     trap - INT
 }
 
-
+# Function to exit the proxy menu
 exit_proxy_menu() {
     echo -e "\033[1;31mSaindo...\033[0m"
     exit 0
 }
 
+# Main function
 main() {
     clear
 
@@ -187,4 +194,5 @@ main() {
     main
 }
 
+# Run the main function
 main
