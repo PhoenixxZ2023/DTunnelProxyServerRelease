@@ -8,5 +8,5 @@ curl -s -L https://raw.githubusercontent.com/PhoenixxZ2023/DTunnelProxyServerRel
 # OU
 
 ````
-bash <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/DTunnelProxyServerRelease/master/install.sh)
+bash <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/DTunnelProxyServerRelease/main/install.sh)
 ````
